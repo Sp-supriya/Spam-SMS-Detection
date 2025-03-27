@@ -1,0 +1,45 @@
+import pandas as pd
+import numpy as np
+import re
+import string
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+
+# Load dataset
+dataset_url = "https://www.kaggle.com/datasets/uciml/sms-spam-collection-dataset"
+data = pd.read_csv(dataset_url, sep='\t', names=['label', 'message'], header=None)
+
+# Convert labels to binary values (ham=0, spam=1)
+data['label'] = data['label'].map({'ham': 0, 'spam': 1})
+
+# Text preprocessing
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(f"[{string.punctuation}]", "", text)
+    text = re.sub("\\d+", "", text)
+    return text
+
+data['cleaned_message'] = data['message'].apply(clean_text)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    data['cleaned_message'], data['label'], test_size=0.2, random_state=42)
+
+# Vectorization
+vectorizer = TfidfVectorizer()
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Train model
+model = MultinomialNB()
+model.fit(X_train_tfidf, y_train)
+
+# Predictions
+y_pred = model.predict(X_test_tfidf)
+
+# Evaluate model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.4f}")
+print(classification_report(y_test, y_pred))
